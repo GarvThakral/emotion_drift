@@ -12,14 +12,19 @@ def train_model(ds: datasets.dataset_dict.DatasetDict)->str:
         num_labels = 28,
         problem_type = "multi_label_classification"
     )
+
     compile_config = {
         "optimizer": "adam",
-        "loss": tf.keras.losses.BinaryCrossentropy(from_logits=True),
-        "metrics": [tf.keras.metrics.BinaryAccuracy()]
+        "loss": tf.keras.losses.BinaryFocalCrossentropy(
+            from_logits=True,
+            alpha=0.25,  # Weight for rare class
+            gamma=2.0    # Focusing parameter
+        ),
+        "metrics":  ["binary_accuracy", "AUC", "Precision", "Recall"]
     }
 
     model.compile(**compile_config)
-    model.distilbert.trainable = False
+    model.distilbert.trainable = True
     # Converting tokenized outputs into tf dataset
     tf_ds_train = ds['train'].to_tf_dataset(
         columns=['input_ids',"attention_mask"],
@@ -39,7 +44,7 @@ def train_model(ds: datasets.dataset_dict.DatasetDict)->str:
         x=tf_ds_train,
         batch_size=8,
         validation_data = tf_ds_valid,
-        epochs=3
+        epochs=2
     ) # type: ignore
     model_path = "./saved_models/trained_model"
     model.save_pretrained(model_path)
