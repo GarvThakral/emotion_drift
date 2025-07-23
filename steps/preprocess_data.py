@@ -8,7 +8,7 @@ model_name = "distilbert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 # Preprocessing our data and making it training ready
 def tokenize_input(example:dict)->dict:
-    tokenized = tokenizer(example["text"],padding = "max_length",truncation=True,max_length = 180)
+    tokenized = tokenizer(example["text"],padding = "max_length",truncation=True,max_length = 100)
     updated_example = {"input_ids":tokenized["input_ids"],"attention_mask":tokenized["attention_mask"],"labels":example["labels"],"id":example["id"]}
     return updated_example
 

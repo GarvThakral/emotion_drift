@@ -15,11 +15,7 @@ def train_model(ds: datasets.dataset_dict.DatasetDict)->str:
 
     compile_config = {
         "optimizer": "adam",
-        "loss": tf.keras.losses.BinaryFocalCrossentropy(
-            from_logits=True,
-            alpha=0.25,  # Weight for rare class
-            gamma=2.0    # Focusing parameter
-        ),
+        "loss": tf.keras.losses.BinaryCrossentropy(from_logits=True),
         "metrics":  ["binary_accuracy", "AUC", "Precision", "Recall"]
     }
 
@@ -29,22 +25,22 @@ def train_model(ds: datasets.dataset_dict.DatasetDict)->str:
     tf_ds_train = ds['train'].to_tf_dataset(
         columns=['input_ids',"attention_mask"],
         label_cols="labels",
-        batch_size = 8,
+        batch_size = 2,
         shuffle = True
     )
 
     tf_ds_valid = ds['validation'].to_tf_dataset(
         columns=['input_ids',"attention_mask"],
         label_cols="labels",
-        batch_size = 8,
+        batch_size = 2,
         shuffle = True
     )
     # model = TFDistilBertForSequenceClassification.from_pretrained(compiled_path)
     model.fit(
         x=tf_ds_train,
-        batch_size=8,
+        batch_size=2,
         validation_data = tf_ds_valid,
-        epochs=2
+        epochs=20
     ) # type: ignore
     model_path = "./saved_models/trained_model"
     model.save_pretrained(model_path)
