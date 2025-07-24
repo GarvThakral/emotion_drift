@@ -9,6 +9,6 @@ from steps.eval_mode import eval_model
 def train_pipeline():
     ds = ingest_data()
     processed_ds = preprocessing_data(ds)
-    trained_path = train_model(processed_ds)
+    trained_path = train_model_fixed(processed_ds)
     result = eval_model(trained_path,processed_ds)
     return result

@@ -2,67 +2,72 @@ from zenml import step
 from transformers import TFDistilBertForSequenceClassification
 import tensorflow as tf
 import datasets
-import os
-import glob
+import numpy as np
 
 @step
 def train_model_fixed(ds: datasets.dataset_dict.DatasetDict) -> str:
-    model_name = "distilbert-base-uncased"
-    model = TFDistilBertForSequenceClassification.from_pretrained(
-        model_name,
-        num_labels=28,
-        problem_type="multi_label_classification"
-    )
-    compile_config = {
-        "optimizer": "adam",
-        "loss": tf.keras.losses.BinaryCrossentropy(from_logits=True),
-        "metrics": ["binary_accuracy", "AUC", "Precision", "Recall"]
-    }
-    model.compile(**compile_config)
-    model.distilbert.trainable = True
+    # Explicitly set the distribution strategy
+    strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")  # Use "/gpu:0" if GPU is available
 
+    # STEP 1: Calculate class weights to fix imbalance
+    print("Calculating class weights...")
+    train_labels = np.array(list(ds['train']['labels']))
+    pos_counts = np.sum(train_labels, axis=0)
+    total_samples = len(train_labels)
+    
+    class_weights = {}
+    for i in range(28):
+        if pos_counts[i] > 0:
+            # Weight = total_samples / (2 * positive_samples)
+            weight = total_samples / (2.0 * pos_counts[i])
+        else:
+            weight = 1.0
+        class_weights[i] = weight
+        if i < 5:  # Print first 5 for debugging
+            print(f"Class {i}: {pos_counts[i]} samples, weight: {weight:.2f}")
+
+    with strategy.scope():
+        model_name = "distilbert-base-uncased"
+        model = TFDistilBertForSequenceClassification.from_pretrained(
+            model_name,
+            num_labels=28,
+            problem_type="multi_label_classification"
+        )
+        
+        compile_config = {
+            "optimizer": "adam", 
+            "loss": tf.keras.losses.BinaryCrossentropy(from_logits=True),
+            "metrics": ["binary_accuracy", "AUC", "Precision", "Recall"]
+        }
+        model.distilbert.trainable = True
+        model.compile(**compile_config)
+        
+        model.optimizer.learning_rate = 2e-5
+
+    # Convert tokenized outputs into tf dataset
     tf_ds_train = ds['train'].to_tf_dataset(
         columns=['input_ids', "attention_mask"],
         label_cols="labels",
-        batch_size=8,
+        batch_size=2,
         shuffle=True
     )
 
     tf_ds_valid = ds['validation'].to_tf_dataset(
         columns=['input_ids', "attention_mask"],
         label_cols="labels",
-        batch_size=8,
+        batch_size=2,
         shuffle=True
     )
 
-    # Checkpoint callback for every 3 epochs
-    checkpoint_dir = "./saved_models/checkpoints"
-    os.makedirs(checkpoint_dir, exist_ok=True)
-    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=os.path.join(checkpoint_dir, "ckpt_epoch_{epoch}.weights.h5"),
-        save_weights_only=True,
-    )
-
-    # Find latest checkpoint if exists
-    checkpoint_files = glob.glob(os.path.join(checkpoint_dir, "ckpt_epoch_*"))
-    if checkpoint_files:
-        # Find the latest epoch
-        latest_ckpt = max(
-            checkpoint_files,
-            key=lambda x: int(x.split("_")[-1])
-        )
-        print(f"Resuming from checkpoint: {latest_ckpt}")
-        model.load_weights(latest_ckpt)
-    else:
-        print("No checkpoint found, starting fresh.")
-
+    # Train the model WITH CLASS WEIGHTS (no callbacks for now)
     model.fit(
         x=tf_ds_train,
-        batch_size=8,
         validation_data=tf_ds_valid,
-        epochs=20,
-        callbacks=[checkpoint_callback]
+        epochs=5,  # Keep it short for testing
+        class_weight=class_weights
     )
+
+    # Save the model
     model_path = "./saved_models/trained_model"
     model.save_pretrained(model_path)
     return model_path

@@ -12,15 +12,13 @@ def train_model(ds: datasets.dataset_dict.DatasetDict)->str:
         num_labels = 28,
         problem_type = "multi_label_classification"
     )
-
     compile_config = {
         "optimizer": "adam",
         "loss": tf.keras.losses.BinaryCrossentropy(from_logits=True),
         "metrics":  ["binary_accuracy", "AUC", "Precision", "Recall"]
     }
-
-    model.compile(**compile_config)
     model.distilbert.trainable = True
+    model.compile(**compile_config)
     # Converting tokenized outputs into tf dataset
     tf_ds_train = ds['train'].to_tf_dataset(
         columns=['input_ids',"attention_mask"],
