@@ -3,7 +3,7 @@ from transformers import TFDistilBertForSequenceClassification
 import tensorflow as tf
 import datasets
 import numpy as np
-
+import mlflow
 @step
 def train_model_fixed(ds: datasets.dataset_dict.DatasetDict) -> str:
     # Explicitly set the distribution strategy
@@ -27,22 +27,30 @@ def train_model_fixed(ds: datasets.dataset_dict.DatasetDict) -> str:
             print(f"Class {i}: {pos_counts[i]} samples, weight: {weight:.2f}")
 
     with strategy.scope():
-        model_name = "distilbert-base-uncased"
+        params = {
+            "model_name":"distilbert-base-uncased",
+            "epochs":1,
+            "num_labels":28,
+            "problem_type":"multi_label_classification",
+            "optimizer":"adam",
+            "trainable":True,
+            "learning_rate":2e-5
+        }
         model = TFDistilBertForSequenceClassification.from_pretrained(
-            model_name,
-            num_labels=28,
-            problem_type="multi_label_classification"
+            params["model_name"],
+            num_labels=params["num_labels"],
+            problem_type=params["problem_type"]
         )
         
         compile_config = {
-            "optimizer": "adam", 
+            "optimizer": params["optimizer"], 
             "loss": tf.keras.losses.BinaryCrossentropy(from_logits=True),
             "metrics": ["binary_accuracy", "AUC", "Precision", "Recall"]
         }
-        model.distilbert.trainable = True
+        model.distilbert.trainable = params['trainable']
         model.compile(**compile_config)
         
-        model.optimizer.learning_rate = 2e-5
+        model.optimizer.learning_rate = params["learning_rate"]
 
     # Convert tokenized outputs into tf dataset
     tf_ds_train = ds['train'].to_tf_dataset(
@@ -63,11 +71,19 @@ def train_model_fixed(ds: datasets.dataset_dict.DatasetDict) -> str:
     model.fit(
         x=tf_ds_train,
         validation_data=tf_ds_valid,
-        epochs=5,  # Keep it short for testing
+        epochs=params['epochs'],  # Keep it short for testing
         class_weight=class_weights
     )
-
+    
     # Save the model
     model_path = "./saved_models/trained_model"
     model.save_pretrained(model_path)
+
+    mlflow.set_tracking_uri("http://127.0.0.1:5000")
+    mlflow.set_experiment("emotion_drift_experiment")
+
+    with mlflow.start_run(run_name = params['model_name']):
+        mlflow.log_params(params)
+        mlflow.log_artifacts(model_path, artifact_path="model")
+
     return model_path

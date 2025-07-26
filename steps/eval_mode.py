@@ -1,7 +1,7 @@
 from zenml import step
 from transformers import TFDistilBertForSequenceClassification
 import tensorflow as tf
-
+import mlflow
 @step
 def eval_model(model_path,ds):
     model = TFDistilBertForSequenceClassification.from_pretrained(
@@ -20,5 +20,7 @@ def eval_model(model_path,ds):
         batch_size = 8,
         shuffle = True
     )
-    result = model.evaluate(tf_ds_test)
+    result = model.evaluate(tf_ds_test,return_dict = True)
+    with mlflow.start_run():
+        mlflow.log_metrics(result)
     return result

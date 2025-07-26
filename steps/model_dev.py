@@ -3,6 +3,7 @@ import tensorflow as tf
 import transformers
 import tensorflow.keras as keras
 from zenml import step
+import mlflow
 
 @step
 def compile_model(
@@ -24,4 +25,5 @@ def compile_model(
     model.distilbert.trainable = False
     # model_path = "./saved_models/compiled_model"
     # model.save_pretrained(model_path)
+
     return model

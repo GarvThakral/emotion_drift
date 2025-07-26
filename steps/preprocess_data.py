@@ -29,5 +29,5 @@ def preprocessing_data(ds : datasets.dataset_dict.DatasetDict)-> datasets.datase
     ds['test'] = ds['test'].map(one_hot_labels)
     ds['validation'] = ds['validation'].map(tokenize_input)
     ds['validation'] = ds['validation'].map(one_hot_labels)  
-
+    tokenizer.save_pretrained("./saved_models/trained_model")
     return ds
