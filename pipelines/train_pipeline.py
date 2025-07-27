@@ -5,10 +5,11 @@ from steps.model_dev import compile_model
 from steps.train_model import train_model
 from steps.train_mode_test import train_model_fixed
 from steps.eval_mode import eval_model
+
 @pipeline
 def train_pipeline():
     ds = ingest_data()
     processed_ds = preprocessing_data(ds)
-    trained_path = train_model_fixed(processed_ds)
-    result = eval_model(trained_path,processed_ds)
+    trained_path,run_id = train_model_fixed(processed_ds)
+    result = eval_model(trained_path,processed_ds,run_id)
     return result

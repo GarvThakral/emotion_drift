@@ -4,8 +4,9 @@ import tensorflow as tf
 import datasets
 import numpy as np
 import mlflow
+from typing import Tuple
 @step
-def train_model_fixed(ds: datasets.dataset_dict.DatasetDict) -> str:
+def train_model_fixed(ds: datasets.dataset_dict.DatasetDict) -> Tuple[str,str]:
     # Explicitly set the distribution strategy
     strategy = tf.distribute.OneDeviceStrategy(device="/gpu:0")  # Use "/gpu:0" if GPU is available
 
@@ -80,10 +81,11 @@ def train_model_fixed(ds: datasets.dataset_dict.DatasetDict) -> str:
     model.save_pretrained(model_path)
 
     mlflow.set_tracking_uri("http://127.0.0.1:5000")
-    mlflow.set_experiment("emotion_drift_experiment")
+    mlflow.set_experiment("emotion_drift_experiment_v2")
 
-    with mlflow.start_run(run_name = params['model_name']):
+    with mlflow.start_run(run_name=params["model_name"]) as run:
         mlflow.log_params(params)
         mlflow.log_artifacts(model_path, artifact_path="model")
+        run_id = run.info.run_id  # ✅ Capture this
 
-    return model_path
+    return (model_path,run_id)
