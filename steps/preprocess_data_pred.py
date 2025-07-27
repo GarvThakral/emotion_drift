@@ -2,7 +2,7 @@ from zenml import step
 import tensorflow as tf
 from transformers import AutoTokenizer
 import datasets
-from typing import Tuple
+from typing import Tuple,Dict,List
 import json
 model_name = "distilbert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -12,8 +12,8 @@ def tokenize_input(example:dict)->dict:
     return dict(tokenized)
 
 @step
-def preprocessing_data(comments:list):
+def preprocessing_data(comments:list)->Tuple[List[Dict[str, list]], List[str]]:
     # Right now its a datasets , dataset . We tokenize it and then convert it into a tf dataset
     comments_updated = [tokenize_input(comment) for comment in comments]
     print(type(comments_updated[0]))
-    return comments_updated
+    return (comments_updated , comments)

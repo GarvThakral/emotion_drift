@@ -7,6 +7,6 @@ from steps.check_result import check_result
 def predict_for_yt():
     video_url = "https://www.youtube.com/watch?v=IYDRe94pTOM"
     comments = fetch_comments(video_url)
-    processed_comments = preprocessing_data(comments)
-    result = predict("./saved_models/trained_model",processed_comments,5)
-    check_result(result)
+    (processed_comments,comments_orig) = preprocessing_data(comments)
+    (result,comments_orig )= predict("./saved_models/trained_model",processed_comments,comments_orig,5)
+    check_result(result,comments_orig)
