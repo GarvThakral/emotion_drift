@@ -85,7 +85,14 @@ def train_model_fixed(ds: datasets.dataset_dict.DatasetDict) -> Tuple[str,str]:
 
     with mlflow.start_run(run_name=params["model_name"]) as run:
         mlflow.log_params(params)
-        mlflow.log_artifacts(model_path, artifact_path="model")
-        run_id = run.info.run_id  # ✅ Capture this
+        run_id = run.info.run_id 
+        mlflow.tensorflow.log_model(
+            model=model,
+            artifact_path="emotion_classifier_model",
+        )
+        mlflow.register_model(
+            model_uri=f"runs:/{run.info.run_id}/emotion_classifier_model",
+            name="emotion_classifier"
+        )
 
     return (model_path,run_id)
