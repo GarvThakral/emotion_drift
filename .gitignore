@@ -8,3 +8,4 @@ mlruns
 data
 sideQuest.py
 .gitignore.swp
+ui/__pycache__

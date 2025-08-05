@@ -1,0 +1,5 @@
+FROM python:3.11-slim
+WORKDIR /api
+COPY apiPy.py requirements.txt ./api/
+RUN pip install -r ./api/requirements.txt
+RUN uvicorn apiPy:app --app-dir api

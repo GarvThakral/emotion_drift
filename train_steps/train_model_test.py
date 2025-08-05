@@ -1,10 +1,11 @@
 from zenml import step
-from transformers import TFDistilBertForSequenceClassification
+from transformers import TFDistilBertForSequenceClassification , AutoTokenizer
 import tensorflow as tf
 import datasets
 import numpy as np
 import mlflow
 from typing import Tuple
+
 @step
 def train_model_fixed(ds: datasets.dataset_dict.DatasetDict) -> Tuple[str,str]:
     # Explicitly set the distribution strategy
@@ -59,7 +60,7 @@ def train_model_fixed(ds: datasets.dataset_dict.DatasetDict) -> Tuple[str,str]:
         label_cols="labels",
         batch_size=2,
         shuffle=True
-    )
+    ).take(1)
 
     tf_ds_valid = ds['validation'].to_tf_dataset(
         columns=['input_ids', "attention_mask"],
@@ -83,14 +84,23 @@ def train_model_fixed(ds: datasets.dataset_dict.DatasetDict) -> Tuple[str,str]:
     mlflow.set_tracking_uri("http://127.0.0.1:5000")
     mlflow.set_experiment("emotion_drift_experiment_v2")
 
+    tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
+
     with mlflow.start_run(run_name=params["model_name"]) as run:
         mlflow.log_params(params)
         run_id = run.info.run_id 
+        # Just use tensorflow flavor - it works fine for logging
         mlflow.tensorflow.log_model(
             model=model,
-            artifact_path="emotion_classifier_model",
+            artifact_path="emotion_classifier_model"
         )
-        mlflow.register_model(
+        
+        # Save tokenizer separately as artifact
+        tokenizer = AutoTokenizer.from_pretrained(params["model_name"])
+        tokenizer.save_pretrained("./temp_tokenizer")
+        mlflow.log_artifacts("./temp_tokenizer", artifact_path="tokenizer")
+        
+        model_version = mlflow.register_model(
             model_uri=f"runs:/{run.info.run_id}/emotion_classifier_model",
             name="emotion_classifier"
         )
