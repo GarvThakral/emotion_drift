@@ -6,6 +6,8 @@ from typing import Tuple, List, Dict
 from pydantic import BaseModel
 from datasets import Dataset
 import tensorflow as tf
+import requests
+
 
 app = FastAPI()
 
@@ -33,11 +35,27 @@ def working():
     return {"status": "Healthy"}
 
 def fetch_comments(video_url: str, num_comments: int):
-    downloader = YoutubeCommentDownloader()
-    comments = downloader.get_comments_from_url(video_url, sort_by=SORT_BY_POPULAR)
-    comments = [comment["text"] for comment in islice(comments, num_comments)]
-    print("Sample Comment : " + comments[0])
-    return comments
+    lambda_url = "https://YOUR-LAMBDA-URL.lambda-url.us-east-1.on.aws/"  
+    
+    payload = {
+        "video_url": video_url,
+        "num_comments": num_comments
+    }
+    
+    try:
+        response = requests.post(lambda_url, json=payload, timeout=30)
+        response.raise_for_status()
+        
+        data = response.json()
+        comments = data.get('comments', [])
+        
+        if comments:
+            print("Sample Comment : " + comments[0])
+        
+        return comments
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Error calling Lambda: {e}")
 
 def tokenize_input(example: dict) -> dict:
     tokenized = tokenizer(

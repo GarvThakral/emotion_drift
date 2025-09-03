@@ -9,9 +9,12 @@ RUN pip install --progress-bar=on -v -r requirements.txt
 # Copy code
 COPY  app.py .
 
-EXPOSE 7860
+# EXPOSE 7860
 
 # Run FastAPI
 
-ENV PORT=7860
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
+# ENV PORT=7860
+# CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
+
+# Use HF's dynamic $PORT instead of hardcoding
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "$PORT"]
