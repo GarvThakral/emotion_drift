@@ -33,7 +33,7 @@ def fetch_comments(video_url:str , num_comments:int):
     downloader = YoutubeCommentDownloader()
     comments = downloader.get_comments_from_url(video_url, sort_by=SORT_BY_POPULAR)
     comments = [comment['text'] for comment in islice(comments, num_comments)]
-    print(comments[0])
+    print("Sample Comment : " + comments[0])
     return comments
 
 # Preprocessing our data and making it training ready
@@ -46,7 +46,9 @@ def tokenize_input(example:dict)->dict:
 def preprocessing_data(comments:list)->Tuple[List[Dict[str, list]], List[str]]:
     # Right now its a datasets , dataset . We tokenize it and then convert it into a tf dataset
     comments_updated = [tokenize_input(comment) for comment in comments]
-    print(type(comments_updated[0]))
+    print("Original comment : " + comments[0])
+    print("Preprocessed comment : " , end = "")
+    print(comments_updated[0])
     return (comments_updated , comments)
 
 def predict(preprocessed_comments,comments_orig):
@@ -74,7 +76,9 @@ def check_result(probs,comments_orig):
 # @app.post('/makePred')
 def make_prediction(video_url:str , num_comments:int):
     print("Starting Pipeline")
+    print("Fetching comments")
     comments = fetch_comments(video_url,num_comments)
+    print("Preprocessing Comments")
     (processed_comments,comments_orig) = preprocessing_data(comments)
     (result,comments_orig )= predict(processed_comments,comments_orig)
     check_result(result,comments_orig)
