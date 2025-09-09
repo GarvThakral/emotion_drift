@@ -9,3 +9,16 @@ data
 sideQuest.py
 .gitignore.swp
 ui/__pycache__
+*.h5
+# Ignore trained models
+*.h5
+*.pt
+*.pkl
+*.onnx
+*.ckpt
+dockerized/trained_model/
+temp_tokenizer/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
