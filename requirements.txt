@@ -9,3 +9,4 @@ pydantic
 uvicorn
 fastapi
 requests
+streamlit
