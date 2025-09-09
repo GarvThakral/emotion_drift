@@ -6,6 +6,8 @@ from transformers import AutoTokenizer
 from datasets import Dataset
 from typing import Tuple,Dict,List
 import json
+from transformers import TFDistilBertForSequenceClassification
+
 model_name = "distilbert-base-uncased"
 
 
@@ -32,7 +34,14 @@ app = FastAPI()
 print("Listening")
 # Load model once when the app starts
 mlflow.set_tracking_uri("http://127.0.0.1:5000")
-model = mlflow.pyfunc.load_model("models:/emotion_classifier/Production")
+        
+compile_config = {
+    "optimizer": "adam", 
+    "loss": tf.keras.losses.BinaryCrossentropy(from_logits=True),
+    "metrics": ["binary_accuracy", "AUC", "Precision", "Recall"]
+}
+model = TFDistilBertForSequenceClassification.from_pretrained("./saved_models/trained_model")
+model.compile(**compile_config)
 
 @app.get("/predict")
 async def predict():
@@ -48,7 +57,10 @@ async def predict():
 
     # Make predictions
     preds = model.predict(tf_ds)
-    return preds
+    logits_tensor = tf.convert_to_tensor(preds.logits)
+    probs = tf.sigmoid(logits_tensor)
+    print(probs)
+    return probs
 
     # Return in JSON serializable format
     return {"predictions": preds.tolist()}
